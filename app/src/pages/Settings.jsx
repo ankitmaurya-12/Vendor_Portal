@@ -1,4 +1,3 @@
-import React from 'react';
 import { Header } from '../Components/Header'; // Adjust the path as necessary
 import { Bell, Lock } from 'lucide-react';
 

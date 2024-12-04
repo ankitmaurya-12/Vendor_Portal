@@ -12,6 +12,8 @@ import { Vendors } from "./pages/Vendors";
 import { Settings } from "./pages/Settings";
 import { Profile } from "./pages/Profile";
 import "./App.css";
+import PeopleList from "./pages/People";
+import { ProfileEdit } from "./pages/ProfileEdit";
 
 const App = () => {
   return (
@@ -24,10 +26,12 @@ const App = () => {
         <Route path="/user" element={<UserPage/>} />
         <Route path="/reset-password" element={<ResetPasswordForm />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="profile/edit" element={<ProfileEdit/>} />
           <Route path="settings" element={<Settings />} />
           <Route path="vendors" element={<Vendors />} />
           <Route path="products" element={<Products />} />
           <Route path="contracts" element={<Contracts />} />
+          <Route path="people" element={<PeopleList/>} />
       </Routes>
     </Router>
   );
