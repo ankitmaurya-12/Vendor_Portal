@@ -150,6 +150,13 @@ const Dashboard = () => {
               People
             </Link>
             <Link
+              to="/sample"
+              className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50"
+            >
+              <Users className="mr-3 h-5 w-5" />
+              Discount
+            </Link>
+            <Link
               to="/vendors"
               className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50"
             >

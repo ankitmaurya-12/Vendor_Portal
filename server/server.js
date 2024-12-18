@@ -4,6 +4,7 @@ const mongoose = require("mongoose")
 const cors = require("cors");
 
 const UserModel = require("./models/User");
+const DiscountRequest = require("./models/Discount");
 
 //calling the server
 const app= express();
@@ -75,6 +76,55 @@ app.post("/login", async (req, res) => {
     }
     }
 );
+
+// // Route to get all users
+// app.get("/api/users", async (req, res) => {
+//     try {
+//         const users = await UserModel.find();
+//         res.status(200).json(users);
+//     } catch (err) {
+//         console.error("Error fetching users:", err);
+//         res.status(400).json({ error: err.message || "Failed to fetch users" });
+//     }
+// });
+
+// Route to create a discount request
+app.post("/api/discount-requests", async (req, res) => {
+  try {
+      const newDiscountRequest = new DiscountRequest(req.body);
+      const savedRequest = await newDiscountRequest.save();
+      res.status(201).json(savedRequest);
+  } catch (err) {
+      console.error("Error saving discount request:", err);
+      res.status(400).json({ error: err.message || "Failed to save discount request" });
+  }
+});
+
+// Route to get all discount requests
+app.get("/api/discount-requests", async (req, res) => {
+  try {
+      const requests = await DiscountRequest.find();
+      res.status(200).json(requests);
+  } catch (err) {
+      console.error("Error fetching discount requests:", err);
+      res.status(400).json({ error: err.message || "Failed to fetch discount requests" });
+  }
+});
+
+// Route to update discount request status
+app.patch("/api/discount-requests/:id", async (req, res) => {
+  try {
+      const updatedRequest = await DiscountRequest.findByIdAndUpdate(
+          req.params.id,
+          { status: req.body.status },
+          { new: true }
+      );
+      res.status(200).json(updatedRequest);
+  } catch (err) {
+      console.error("Error updating discount request:", err);
+      res.status(400).json({ error: err.message || "Failed to update discount request" });
+  }
+});
 
 //listening to the server
 app.listen(5000,()=>{
