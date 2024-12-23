@@ -33,7 +33,7 @@ mongoose.connect("mongodb://localhost:27017/Vendor_Portal",{
 //routes
 app.get('/', (req, res)=>{
     console.log("home page");
-    res.send("How are you !!");
+    res.send("Vendor portal API");
 })
 
 //belove working fine for postman
@@ -93,47 +93,139 @@ app.post("/login", async (req, res) => {
 //     }
 // });
 
-// Route to create a discount request
+
+// Discount Request Routes
+
+// Create new discount request
 app.post("/api/discount-requests", async (req, res) => {
-  try {
-      const newDiscountRequest = new DiscountRequest(req.body);
-      const savedRequest = await newDiscountRequest.save();
-      res.status(201).json(savedRequest);
-  } catch (err) {
-      console.error("Error saving discount request:", err);
-      res.status(400).json({ error: err.message || "Failed to save discount request" });
-  }
+    try {
+        const {
+            salesOrder,
+            orderType,
+            netValue,
+            customer,
+            discountPercentage,
+            discountAmount,
+            finalValue,
+            requestedBy
+        } = req.body;
+
+        // Validate required fields
+        if (!salesOrder || !orderType || !netValue || !customer || !discountPercentage || !discountAmount || !finalValue || !requestedBy) {
+            return res.status(400).json({ error: "All fields are required" });
+        }
+
+        const newDiscountRequest = new DiscountRequest({
+            salesOrder,
+            orderType,
+            netValue,
+            customer,
+            discountPercentage,
+            discountAmount,
+            finalValue,
+            requestedBy,
+            status: 'PENDING_APPROVAL'
+        });
+
+        const savedRequest = await newDiscountRequest.save();
+        res.status(201).json(savedRequest);
+    } catch (err) {
+        console.error("Error creating discount request:", err);
+        if (err.code === 11000) { // MongoDB duplicate key error
+            res.status(400).json({ error: "A discount request for this sales order already exists" });
+        } else {
+            res.status(400).json({ error: err.message || "Failed to create discount request" });
+        }
+    }
 });
 
-// Route to get all discount requests
+// Get all discount requests with optional status filter
 app.get("/api/discount-requests", async (req, res) => {
-  try {
-      const requests = await DiscountRequest.find();
-      res.status(200).json(requests);
-  } catch (err) {
-      console.error("Error fetching discount requests:", err);
-      res.status(400).json({ error: err.message || "Failed to fetch discount requests" });
-  }
+    try {
+        const { status } = req.query;
+        const filter = status ? { status } : {};
+        const requests = await DiscountRequest.find(filter)
+            .sort({ createdAt: -1 }); // Sort by newest first
+        res.status(200).json(requests);
+    } catch (err) {
+        console.error("Error fetching discount requests:", err);
+        res.status(500).json({ error: err.message || "Failed to fetch discount requests" });
+    }
 });
 
-// Route to update discount request status
+// Get specific discount request
+app.get("/api/discount-requests/:id", async (req, res) => {
+    try {
+        const request = await DiscountRequest.findById(req.params.id);
+        if (!request) {
+            return res.status(404).json({ error: "Discount request not found" });
+        }
+        res.status(200).json(request);
+    } catch (err) {
+        console.error("Error fetching discount request:", err);
+        res.status(500).json({ error: err.message || "Failed to fetch discount request" });
+    }
+});
+
+// Update discount request status
 app.patch("/api/discount-requests/:id", async (req, res) => {
-  try {
-      const updatedRequest = await DiscountRequest.findByIdAndUpdate(
-          req.params.id,
-          { status: req.body.status },
-          { new: true }
-      );
-      res.status(200).json(updatedRequest);
-  } catch (err) {
-      console.error("Error updating discount request:", err);
-      res.status(400).json({ error: err.message || "Failed to update discount request" });
-  }
+    try {
+        const { status, approvedBy, rejectionReason } = req.body;
+        
+        if (!['PENDING_APPROVAL', 'APPROVED', 'REJECTED'].includes(status)) {
+            return res.status(400).json({ error: "Invalid status" });
+        }
+
+        const updateData = {
+            status,
+            approvedBy,
+            approvalDate: new Date()
+        };
+
+        if (status === 'REJECTED' && rejectionReason) {
+            updateData.rejectionReason = rejectionReason;
+        }
+
+        const updatedRequest = await DiscountRequest.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedRequest) {
+            return res.status(404).json({ error: "Discount request not found" });
+        }
+
+        res.status(200).json(updatedRequest);
+    } catch (err) {
+        console.error("Error updating discount request:", err);
+        res.status(400).json({ error: err.message || "Failed to update discount request" });
+    }
+});
+
+// Get requests by user
+app.get("/api/discount-requests/user/:requestedBy", async (req, res) => {
+    try {
+        const requests = await DiscountRequest.find({ 
+            requestedBy: req.params.requestedBy 
+        }).sort({ createdAt: -1 });
+        res.status(200).json(requests);
+    } catch (err) {
+        console.error("Error fetching user's discount requests:", err);
+        res.status(500).json({ error: err.message || "Failed to fetch user's discount requests" });
+    }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: "Something broke!" });
 });
 
 //listening to the server
 app.listen(PORT,()=>{
-    console.log("Server is running on port 5000");
+    console.log(`Server is running on port ${PORT}`);
 });
 
 
+module.exports = app;

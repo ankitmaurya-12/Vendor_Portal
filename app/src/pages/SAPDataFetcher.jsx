@@ -1,58 +1,143 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowUpDown, IndianRupee, Calculator, MoveUp, MoveDown  } from 'lucide-react';
 
 export const SAPDataFetcher = () => {
-  const [totalItems, setTotalItems] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // const [totalItems, setTotalItems] = useState(0);
+  // const [rowsPerPage, setRowsPerPage] = useState(10);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [columnLoading, setColumnLoading] = useState(null);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [discounts, setDiscounts] = useState({});
   const [selectedRows, setSelectedRows] = useState({});
   const [discountStatus, setDiscountStatus] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [cachedData, setCachedData] = useState({});
 
-  // const rowsPerPage = 10;
+  const rowsPerPage = 10;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const credentials = btoa("iws_consult:Support@123");
-
-        // Modified URL to include pagination and sorting parameters
-        const url = new URL("/sap/opu/odata/sap/ZJ_SALES_SRV/zsoheaderSet/", window.location.origin);
-        url.searchParams.append("page", page);
-        url.searchParams.append("limit", rowsPerPage);
-        if (sortConfig.key) {
-          url.searchParams.append("sortBy", sortConfig.key);
-          url.searchParams.append("sortDirection", sortConfig.direction);
-        }
-
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Basic ${credentials}`,
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        setData(result.d.results || []);
-        setTotalItems(result.d.__count || 0); // Update total items count
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+   // Debounced fetch function
+   const debouncedFetch = useCallback((callback, delay) => {
+    let timeoutId;
+    return (...args) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
+      timeoutId = setTimeout(() => {
+        callback(...args);
+      }, delay);
     };
+  }, []);
 
-    fetchData();
-  }, [page, rowsPerPage, sortConfig]);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const credentials = btoa("iws_consult:Support@123");
+
+  //       // Modified URL to include pagination and sorting parameters
+  //       const url = new URL("/sap/opu/odata/sap/ZJ_SALES_SRV/zsoheaderSet/", window.location.origin);
+  //       url.searchParams.append("page", page);
+  //       url.searchParams.append("limit", rowsPerPage);
+  //       if (sortConfig.key) {
+  //         url.searchParams.append("sortBy", sortConfig.key);
+  //         url.searchParams.append("sortDirection", sortConfig.direction);
+  //       }
+
+  //       const response = await fetch(url, {
+  //         headers: {
+  //           Authorization: `Basic ${credentials}`,
+  //           Accept: "application/json",
+  //         },
+  //       });
+
+  //       if (!response.ok) {
+  //         throw new Error(`HTTP error! Status: ${response.status}`);
+  //       }
+
+  //       const result = await response.json();
+  //       setData(result.d.results || []);
+  //       // setTotalItems(result.d.__count || 0); // Update total items count
+  //     } catch (err) {
+  //       setError(err.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchData();
+  // }, [page, rowsPerPage, sortConfig]);
+
+  const fetchData = useCallback(async (sortKey = null) => {
+    try {
+      // Only set full loading on initial fetch
+      if (!data.length) {
+        setLoading(true);
+      }
+      // Set column loading when sorting
+      if (sortKey) {
+        setColumnLoading(sortKey);
+      }
+
+      const credentials = btoa("iws_consult:Support@123");
+      const url = new URL("/sap/opu/odata/sap/ZJ_SALES_SRV/zsoheaderSet/", window.location.origin);
+      
+      // Add pagination and sorting params
+      url.searchParams.append("page", page);
+      url.searchParams.append("limit", rowsPerPage);
+      if (sortConfig.key) {
+        url.searchParams.append("sortBy", sortConfig.key);
+        url.searchParams.append("sortDirection", sortConfig.direction);
+      }
+
+      // Check cache first
+      const cacheKey = url.toString();
+      if (cachedData[cacheKey]) {
+        setData(cachedData[cacheKey]);
+        setColumnLoading(null);
+        return;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const newData = result.d.results || [];
+      
+      // Update cache and state
+      setCachedData(prev => ({
+        ...prev,
+        [cacheKey]: newData
+      }));
+      setData(newData);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setColumnLoading(null);
+    }
+  }, [page, sortConfig, cachedData]);
+
+    // Debounced version of fetchData for sorting
+    const debouncedFetchData = useCallback(
+      debouncedFetch((sortKey) => fetchData(sortKey), 300),
+      [fetchData]
+    );
+
+    useEffect(() => {
+      fetchData();
+    }, [page]);
+
 
   // useEffect(() => {
   //   const fetchData = async () => {
@@ -97,17 +182,65 @@ export const SAPDataFetcher = () => {
   
   
 
+  // const handleSort = (key) => {
+  //   let direction = 'asc';
+  //   if (sortConfig.key === key) {
+  //     if (sortConfig.direction === 'asc') direction = 'desc';
+  //     else if (sortConfig.direction === 'desc') {
+  //       setSortConfig({ key: null, direction: null });
+  //       return;
+  //     }
+  //   }
+  //   setSortConfig({ key, direction });
+  //   setPage(1); // Reset to first page when sorting changes
+  // };
+
   const handleSort = (key) => {
-    let direction = 'asc';
+    let direction = "asc";
     if (sortConfig.key === key) {
-      if (sortConfig.direction === 'asc') direction = 'desc';
-      else if (sortConfig.direction === 'desc') {
+      if (sortConfig.direction === "asc") direction = "desc";
+      else if (sortConfig.direction === "desc") {
         setSortConfig({ key: null, direction: null });
         return;
       }
     }
     setSortConfig({ key, direction });
-    setPage(1); // Reset to first page when sorting changes
+
+    // Special handling for calculated fields
+    if (["Discount", "DiscountAmount", "FinalValue"].includes(key)) {
+      const sortedData = [...data].sort((a, b) => {
+        const aDiscount = discounts[a.Vbeln] || 0;
+        const bDiscount = discounts[b.Vbeln] || 0;
+
+        if (key === "Discount") {
+          return direction === "asc"
+            ? aDiscount - bDiscount
+            : bDiscount - aDiscount;
+        }
+
+        const aDiscountAmount = calculateDiscount(a.Netwr, aDiscount);
+        const bDiscountAmount = calculateDiscount(b.Netwr, bDiscount);
+
+        if (key === "DiscountAmount") {
+          return direction === "asc"
+            ? aDiscountAmount - bDiscountAmount
+            : bDiscountAmount - aDiscountAmount;
+        }
+
+        const aFinalValue = calculateFinalValue(a.Netwr, aDiscountAmount);
+        const bFinalValue = calculateFinalValue(b.Netwr, bDiscountAmount);
+
+        return direction === "asc"
+          ? aFinalValue - bFinalValue
+          : bFinalValue - aFinalValue;
+      });
+
+      setData(sortedData);
+      return;
+    }
+
+    // Original sorting logic for other fields
+    debouncedFetchData(key);
   };
 
   const sortedData = useMemo(() => {
@@ -130,6 +263,7 @@ export const SAPDataFetcher = () => {
     return <MoveDown className="w-4 h-4" />;
   };
 
+  // Calculate Disount function
   const calculateDiscount = (netValue, percentage) => {
     const numericValue = parseFloat(netValue);
     const numericPercentage = parseFloat(percentage);
@@ -161,9 +295,7 @@ export const SAPDataFetcher = () => {
     }
   };
 
-  const paginatedData = data.slice((page - 1) * rowsPerPage, page * rowsPerPage);
-
- 
+  // const paginatedData = data.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const calculateFinalValue = (netValue, discountAmount) => {
     const numericValue = parseFloat(netValue);
@@ -201,26 +333,25 @@ export const SAPDataFetcher = () => {
   //   }));
   // };
 
+  //Updated HandleApplyDiscount function
   const handleApplyDiscount = async (salesOrder) => {
     try {
+      const currentItem = data.find(item => item.Vbeln === salesOrder);
+      const discountPercentage = parseFloat(discounts[salesOrder]);
+      const discountAmount = calculateDiscount(currentItem.Netwr, discountPercentage);
+      const finalValue = calculateFinalValue(currentItem.Netwr, discountAmount);
+  
       const discountData = {
         salesOrder: salesOrder,
-        originalValue: parseFloat(data.find(item => item.Vbeln === salesOrder).Netwr),
-        discountPercentage: parseFloat(discounts[salesOrder]),
-        discountAmount: calculateDiscount(
-          data.find(item => item.Vbeln === salesOrder).Netwr,
-          discounts[salesOrder]
-        ),
-        finalValue: calculateFinalValue(
-          data.find(item => item.Vbeln === salesOrder).Netwr,
-          calculateDiscount(
-            data.find(item => item.Vbeln === salesOrder).Netwr,
-            discounts[salesOrder]
-          )
-        ),
-        requestedBy: "current_user_email", // Replace with actual user email from your auth system
+        orderType: currentItem.Auart,
+        netValue: parseFloat(currentItem.Netwr),
+        customer: currentItem.Kunnr,
+        discountPercentage: discountPercentage,
+        discountAmount: discountAmount,
+        finalValue: finalValue,
+        requestedBy: "current_user_email", // Replace with actual user email
       };
-
+  
       const response = await fetch('http://localhost:5000/api/discount-requests', {
         method: 'POST',
         headers: {
@@ -228,20 +359,17 @@ export const SAPDataFetcher = () => {
         },
         body: JSON.stringify(discountData),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to submit discount request');
       }
-
-      const result = await response.json();
-      
+  
       // Update local state to show pending status
       setDiscountStatus(prev => ({
         ...prev,
         [salesOrder]: 'PENDING_APPROVAL'
       }));
-
-      // Show success message (you'll need to implement this)
+  
       alert('Discount request submitted successfully!');
     } catch (error) {
       console.error('Error submitting discount request:', error);
@@ -289,30 +417,32 @@ export const SAPDataFetcher = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">SAP Sales Orders</h1>
 
-      
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-[#059B9A]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total Invoice Value</p>
-              <p className="text-2xl font-bold text-[#059B9A]">{formatCurrency(totalInvoiceValue)}</p>
+              <p className="text-2xl font-bold text-[#059B9A]">
+                {formatCurrency(totalInvoiceValue)}
+              </p>
             </div>
             <IndianRupee className="w-8 h-8 text-[#059B9A]" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-[#059B9A]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Net Value After Discounts</p>
-              <p className="text-2xl font-bold text-[#059B9A]">{formatCurrency(totalDiscountedValue)}</p>
+              <p className="text-2xl font-bold text-[#059B9A]">
+                {formatCurrency(totalDiscountedValue)}
+              </p>
             </div>
             <Calculator className="w-8 h-8 text-[#059B9A]" />
           </div>
         </div>
       </div>
-
 
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="min-w-full">
@@ -321,56 +451,103 @@ export const SAPDataFetcher = () => {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Select
               </th>
+              {/* Sales Order Column */}
               <th
-                onClick={() => handleSort('Vbeln')}
+                onClick={() => handleSort("Vbeln")}
                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center space-x-1">
                   <span>Sales Order</span>
-                  {getSortIndicator('Vbeln')}
+                  {columnLoading === "Vbeln" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("Vbeln")
+                  )}
                 </div>
               </th>
+              {/* Order Type Column */}
               <th
-                onClick={() => handleSort('Auart')}
+                onClick={() => handleSort("Auart")}
                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center space-x-1">
                   <span>Order Type</span>
-                  {getSortIndicator('Auart')}
+                  {columnLoading === "Auart" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("Auart")
+                  )}
                 </div>
               </th>
+              {/* Net Value Column */}
               <th
-                onClick={() => handleSort('Netwr')}
+                onClick={() => handleSort("Netwr")}
                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center space-x-1">
                   <span>Net Value</span>
-                  {getSortIndicator('Netwr')}
+                  {columnLoading === "Netwr" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("Netwr")
+                  )}
                 </div>
               </th>
+              {/* Customer Column */}
               <th
-                onClick={() => handleSort('Kunnr')}
+                onClick={() => handleSort("Kunnr")}
                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
               >
                 <div className="flex items-center space-x-1">
                   <span>Customer</span>
-                  {getSortIndicator('Kunnr')}
+                  {columnLoading === "Kunnr" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("Kunnr")
+                  )}
                 </div>
               </th>
-              <th 
-                onClick={() => handleSort('Discount')}
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Discount %
-              </th>
+              {/* Discount % Column */}
               <th
-                onClick={() => handleSort('DiscountAmount')} 
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                Discount Amount
+                onClick={() => handleSort("Discount")}
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Discount %</span>
+                  {columnLoading === "Discount" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("Discount")
+                  )}
+                </div>
               </th>
+              {/* Discount Amount Column */}
               <th
-                onClick={() => handleSort('FinalValue')} 
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-              Final Value
+                onClick={() => handleSort("DiscountAmount")}
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Discount Amount</span>
+                  {columnLoading === "DiscountAmount" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("DiscountAmount")
+                  )}
+                </div>
+              </th>
+              {/* Final Value Column */}
+              <th
+                onClick={() => handleSort("FinalValue")}
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Final Value</span>
+                  {columnLoading === "FinalValue" ? (
+                    <div className="w-4 h-4 border-2 border-t-2 border-white rounded-full animate-spin" />
+                  ) : (
+                    getSortIndicator("FinalValue")
+                  )}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Actions
@@ -382,70 +559,84 @@ export const SAPDataFetcher = () => {
           </thead>
 
           <tbody className="divide-y divide-gray-200">
-            {sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((item) => {
-              const discountAmount = calculateDiscount(item.Netwr, discounts[item.Vbeln] || 0);
-              const finalValue = calculateFinalValue(item.Netwr, discountAmount);
-              const isSelected = selectedRows[item.Vbeln];
-              const status = discountStatus[item.Vbeln];
-              
-              return (
-                <tr key={item.Vbeln} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <input 
-                      type="checkbox" 
-                      checked={isSelected}
-                      onChange={() => handleRowSelect(item.Vbeln)}
-                      className="rounded border-gray-300"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.Vbeln}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.Auart}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatCurrency(item.Netwr)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.Kunnr}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center space-x-2">
+            {sortedData
+              .slice((page - 1) * rowsPerPage, page * rowsPerPage)
+              .map((item) => {
+                const discountAmount = calculateDiscount(
+                  item.Netwr,
+                  discounts[item.Vbeln] || 0
+                );
+                const finalValue = calculateFinalValue(
+                  item.Netwr,
+                  discountAmount
+                );
+                const isSelected = selectedRows[item.Vbeln];
+                const status = discountStatus[item.Vbeln];
+
+                return (
+                  <tr key={item.Vbeln} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <input
-                        id={`discount-${item.Vbeln}`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={discounts[item.Vbeln] || ''}
-                        onChange={() => handleDiscountChange(item.Vbeln)}
-                        disabled={!isSelected || status === 'PENDING_APPROVAL'}
-                        className="border border-gray-300 rounded-md p-1 w-20 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleRowSelect(item.Vbeln)}
+                        className="rounded border-gray-300"
                       />
-                      <span>%</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatCurrency(discountAmount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatCurrency(finalValue)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => handleApplyDiscount(item.Vbeln)}
-                      disabled={!isSelected || !discounts[item.Vbeln] || status === 'PENDING_APPROVAL'}
-                      className="px-3 py-1 bg-[#059B9A] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#048786]"
-                    >
-                      Apply
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {getStatusDisplay(status)}
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.Vbeln}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {item.Auart}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatCurrency(item.Netwr)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {item.Kunnr}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          id={`discount-${item.Vbeln}`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={discounts[item.Vbeln] || ""}
+                          onChange={() => handleDiscountChange(item.Vbeln)}
+                          disabled={
+                            !isSelected || status === "PENDING_APPROVAL"
+                          }
+                          className="border border-gray-300 rounded-md p-1 w-20 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <span>%</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatCurrency(discountAmount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatCurrency(finalValue)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => handleApplyDiscount(item.Vbeln)}
+                        disabled={
+                          !isSelected ||
+                          !discounts[item.Vbeln] ||
+                          status === "PENDING_APPROVAL"
+                        }
+                        className="px-3 py-1 bg-[#059B9A] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#048786]"
+                      >
+                        Apply
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {getStatusDisplay(status)}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
