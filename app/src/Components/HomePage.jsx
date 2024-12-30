@@ -24,6 +24,7 @@ const HomePage = () => {
           <nav>
             <ul className="flex space-x-6">
               <li><Link to="/" className="text-white hover:text-indigo-200 transition">Home</Link></li>
+              <li><Link to="/Dashboard" className="text-white hover:text-indigo-200 transition">Dashboard</Link></li>
               <li><Link to="#features" className="text-white hover:text-indigo-200 transition">Features</Link></li>
               <li><Link to="#about" className="text-white hover:text-indigo-200 transition">About</Link></li>
               <li><Link to="#faq" className="text-white hover:text-indigo-200 transition">FAQ</Link></li>

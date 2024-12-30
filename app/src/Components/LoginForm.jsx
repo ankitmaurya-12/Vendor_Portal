@@ -4,7 +4,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, 
+import { 
+  Eye, 
   EyeOff, 
   Check, 
   X, 
@@ -15,18 +16,15 @@ import { Eye,
   Lock,
   Mail,
   AlertCircle
- } from 'lucide-react';
+} from 'lucide-react';
+import { useUser } from '../context/userContext';
+import { theme } from '../assets/theme';
 
-// Validation Schema
+// Validation schema for login form
 const loginSchema = yup.object().shape({
   email: yup.string().email("Invalid email").required("Email is required"),
-  password: yup
-    .string()
-    .required("Password is required")
-    .min(10, "Password must be at least 10 characters")
-    .matches(/[A-Za-z]/, "Password must contain at least one letter")
-    .matches(/\d/, "Password must contain at least one number")
-    .matches(/[@$!%*?&#]/, "Password must contain at least one special character"),
+  password: yup.string().required("Password is required"),
+  role: yup.string().required("Please select your role")
 });
 
 const LoginForm = () => {
@@ -34,29 +32,100 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const { login } = useUser(); 
+
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(loginSchema) });
+  } = useForm({ 
+    resolver: yupResolver(loginSchema),
+    defaultValues: {
+      role: 'vendor' // Default role
+    }
+  });
 
   const navigate = useNavigate();
+
+  // const onSubmit = async (data) => {
+  //   setIsLoading(true);
+  //   setLoginError("");
+  //   setSuccessMessage("");
+  //   try {
+  //     const response = await axios.post("http://localhost:5003/api/users/login", data);
+  //     localStorage.setItem('userId', response.data.id);
+
+  //     // Store the entire user data as received from the API
+  //     login({
+  //       id: response.data._id,
+  //       firstName: response.data.firstName,
+  //       lastName: response.data.lastName,
+  //       email: response.data.email,
+  //       role: response.data.role,
+  //       // Role-specific data
+  //       ...(response.data.company && { company: response.data.company }),
+  //       ...(response.data.department && { department: response.data.department }),
+  //       ...(response.data.approvalLimit && { approvalLimit: response.data.approvalLimit })
+  //     });
+
+  //     setSuccessMessage("Sign In successful!");
+  //     console.log("Login successful:", response.data);
+
+  //     // Role-based navigation
+  //     const dashboardRoutes = {
+  //       vendor: '/vendor-dashboard',
+  //       admin: '/admin-dashboard',
+  //       approver: '/approver-dashboard'
+  //     };
+
+  //     setTimeout(() => {
+  //       navigate(dashboardRoutes[response.data.role] || '/dashboard');
+  //     }, 2000);
+
+  //   } catch (error) {
+  //     console.error('Error logging in:', error.response ? error.response.data : error.message);
+  //     setLoginError(error.response?.data?.message || "Invalid credentials, please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
     setLoginError("");
     setSuccessMessage("");
     try {
-      const response = await axios.post('http://localhost:5000/login', data);
+      const response = await axios.post("http://localhost:5004/api/users/login", data);
+      
+      // Create user object
+      const userData = {
+        id: response.data.user._id,
+        firstName: response.data.user.firstName,
+        lastName: response.data.user.lastName,
+        email: response.data.user.email,
+        role: response.data.user.role,
+        // Role-specific data
+        ...(response.data.user.company && { company: response.data.user.company }),
+        ...(response.data.user.department && { department: response.data.user.department }),
+        ...(response.data.user.approvalLimit && { approvalLimit: response.data.user.approvalLimit })
+      };
+  
+      // Login with both user data and token
+      login(userData, response.data.token);
+  
       setSuccessMessage("Sign In successful!");
-      console.log('Login successful:', response.data);
-
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-
+      
+      // Role-based navigation
+      const dashboardRoutes = {
+        vendor: '/vendor-dashboard',
+        admin: '/admin-dashboard',
+        approver: '/approver-dashboard'
+      };
+  
+      // Remove setTimeout and navigate immediately
+      navigate(dashboardRoutes[response.data.user.role] || '/dashboard');
+  
     } catch (error) {
       console.error('Error logging in:', error.response ? error.response.data : error.message);
       setLoginError(error.response?.data?.message || "Invalid credentials, please try again.");
@@ -64,21 +133,23 @@ const LoginForm = () => {
       setIsLoading(false);
     }
   };
-
+  
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <div className="max-w-md w-full space-y-8 bg-white rounded-xl shadow-lg p-8">
-        <div>
-          <h2 className="text-center text-3xl font-bold text-blue-600 mb-4">
-            Welcome Back
-          </h2>
-          <p className="text-center text-sm text-gray-600">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
-            </Link>
-          </p>
-        </div>
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center"
+    style={{ background: theme.colors.background }}>
+ <div className="max-w-md w-full space-y-8 rounded-xl shadow-lg p-8"
+      style={{ background: theme.colors.cardBg }}>
+   <div>
+     <h2 className="text-center text-3xl font-bold mb-4"
+         style={{ color: theme.colors.primary }}>
+       Welcome Back
+     </h2>
+     <p className="text-center text-sm"
+        style={{ color: theme.colors.textLight }}>
+       Sign in to your account
+     </p>
+   </div>
 
         {loginError && (
           <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
@@ -101,6 +172,27 @@ const LoginForm = () => {
         )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          {/* Role Selection */}
+          <div>
+            <label className="block text-sm font-medium mb-1"
+                   style={{ color: theme.colors.text }}>
+              Select Role
+            </label>
+            <select
+              {...register("role")}
+              className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2"
+              style={{ 
+                borderColor: theme.colors.border,
+                '--tw-ring-color': theme.colors.primary 
+              }}
+            >
+              <option value="vendor">Vendor</option>
+              <option value="admin">Admin</option>
+              <option value="approver">Approver</option>
+            </select>
+          </div>
+
+           {/* Email and Password fields */}
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -171,22 +263,24 @@ const LoginForm = () => {
             </Link>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
-            >
-              {isLoading ? (
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                "Sign in"
-              )}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 rounded-lg transition transform hover:scale-105"
+            style={{ 
+              background: theme.colors.primary,
+              color: theme.colors.cardBg,
+              transition: theme.transition.default
+            }}
+          >
+            {isLoading ? "Signing in..." : "Sign in"}
+          </button>
+          <p className="text-center text-sm text-gray-600">
+            Don't have an account?{" "}
+            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign up
+            </Link>
+          </p>
         </form>
 
         <div className="mt-6">

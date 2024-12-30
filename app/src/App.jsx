@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, BrowserRouter } from "react-router-dom";
 import LoginForm from "./Components/LoginForm";
 import SignupForm from "./Components/SignupForm";
 import ResetPasswordForm from "./Components/ResetPasswordForm";
@@ -19,22 +19,27 @@ import Employee from "./pages/EmployeeTable";
 //Vendor
 import { SAPDataFetcher } from "./pages/SAPDataFetcher";
 
-
 // //Approver
 import { ApproverInterface } from "./pages/Approver/ApproverInterface";
 
+//userContext
+import { UserProvider } from "./context/UserContext";
+import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
   return (
-    <Router>
+    // <Router>
+    <UserProvider>
+      <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="login" element={<LoginForm />} />
         <Route path="signup" element={<SignupForm />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="vendor-dashboard" element={<Dashboard />} />
         <Route path="user" element={<UserPage />} />
         <Route path="reset-password" element={<ResetPasswordForm />} />
-        <Route path="profile" element={<Profile />} />
+        <Route path="profile2" element={<Profile />} />
+        <Route path="profile" element={<ProfilePage/>} />
         <Route path="profile/edit" element={<ProfileEdit />} />
         <Route path="settings" element={<Settings />} />
         <Route path="vendors" element={<Vendors />} />
@@ -49,13 +54,21 @@ const App = () => {
 
         {/* Approver */}
         <Route path="approver/discount" element={<ApproverInterface />} />
-        <Route path="/approver/discount/approved" element={<ApproverInterface />} />
-        <Route path="/approver/discount/rejected" element={<ApproverInterface />} />
+        <Route
+          path="/approver/discount/approved"
+          element={<ApproverInterface />}
+          />
+        <Route
+          path="/approver/discount/rejected"
+          element={<ApproverInterface />}
+          />
 
         {/* Unknown Route */}
         <Route path="*" element={<div>Not Found</div>} />
       </Routes>
-    </Router>
+     </BrowserRouter>
+    </UserProvider>
+    // </Router>
   );
 };
 

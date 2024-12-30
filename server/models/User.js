@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
     lname: { type: String, required: true },
     company: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    PhoneNumber: { type: Number, required: true},
+    // PhoneNumber: { type: Number, required: true, unique: true },
+    PhoneNumber: { type: Number},
     password: { type: String, required: true },
     conPassword: { type: String, required: true, unique: true  }, 
 
@@ -17,7 +18,11 @@ const userSchema = new mongoose.Schema({
     CreatedAt: {type: Date},
     UpdatedAt: {type: Date},
 
-
+    // Added fields for profile
+    address: { type: String },
+    website: { type: String },
+    bio: { type: String },
+    profileImage: { type: String }
 
   });
   

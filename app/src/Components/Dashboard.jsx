@@ -1,245 +1,265 @@
 import { useState } from 'react';
-import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { 
-  Home, 
+  PieChart, 
+  Activity, 
+  ArrowUp, 
+  ArrowDown, 
   Users, 
-  Boxes as BoxesIcon,
-  FileText, 
-  Settings, 
-  Bell,
-  ChevronDown,
-  Search,
-  PieChart,
-  Activity
+  DollarSign,
+  TrendingUp,
+  ShoppingCart,
+  Clock,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
+import Header from './Header';
+import Sidebar from './SideBar';
+import { theme } from '../assets/theme';
 
 const Dashboard = () => {
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const navigate = useNavigate();
-
-
-
-  const notifications = [
-    { id: 1, text: "New vendor application received", isNew: true },
-    { id: 2, text: "Contract renewal due in 7 days", isNew: true },
-    { id: 3, text: "Payment processed for Vendor #1234", isNew: false }
-  ];
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const stats = [
-    { title: "Active Vendors", value: "234", change: "+12%", trend: "up" },
-    { title: "Pending Approvals", value: "18", change: "-3%", trend: "down" },
-    { title: "Total Contracts", value: "543", change: "+5%", trend: "up" },
-    { title: "Monthly Spend", value: "$125K", change: "+8%", trend: "up" }
-  ];
-
-  const recentActivity = [
     {
-      icon: <Activity className="text-blue-500" size={24} />,
-      title: 'New Vendor Onboarded',
-      description: 'Tech Innovations Inc. added to vendor list',
-      time: '2 mins ago'
+      title: 'Total Revenue',
+      value: '$54,239',
+      change: '+14.2%',
+      trend: 'up',
+      icon: DollarSign,
+      color: 'text-green-500',
+      bgColor: 'bg-green-50'
     },
     {
-      icon: <PieChart className="text-orange-500" size={24} />,
-      title: 'Contract Review',
-      description: 'Annual contract with GlobalSupply reviewed',
-      time: '1 hour ago'
+      title: 'Active Users',
+      value: '2,435',
+      change: '+5.4%',
+      trend: 'up',
+      icon: Users,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50'
     },
     {
-      icon: <FileText className="text-green-500" size={24} />,
-      title: 'Report Generated',
-      description: 'Q2 Vendor Performance Report',
-      time: '3 hours ago'
+      title: 'Conversion Rate',
+      value: '4.3%',
+      change: '-2.1%',
+      trend: 'down',
+      icon: Activity,
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-50'
+    },
+    {
+      title: 'Avg. Order Value',
+      value: '$89.54',
+      change: '+8.7%',
+      trend: 'up',
+      icon: PieChart,
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-50'
     }
   ];
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation Bar */}
-      <nav className="bg-white shadow px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-x-6">
-          <h1 className="text-2xl font-bold text-blue-600">VendorHub</h1>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search vendors..."
-              className="pl-10 pr-4 py-2 border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-          </div>
-        </div>
+  const recentTransactions = [
+    {
+      id: 1,
+      name: 'Sarah Johnson',
+      amount: '$234.50',
+      status: 'completed',
+      date: '2 min ago'
+    },
+    {
+      id: 2,
+      name: 'Michael Chen',
+      amount: '$890.00',
+      status: 'pending',
+      date: '15 min ago'
+    },
+    {
+      id: 3,
+      name: 'Emily Parker',
+      amount: '$125.99',
+      status: 'completed',
+      date: '1 hour ago'
+    },
+    {
+      id: 4,
+      name: 'David Wilson',
+      amount: '$567.80',
+      status: 'failed',
+      date: '2 hours ago'
+    }
+  ];
 
-        <div className="flex items-center gap-x-4">
-          <div className="relative">
-            <Bell className="h-6 w-6 text-gray-600 cursor-pointer" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-              {notifications.filter(n => n.isNew).length}
-            </span>
-          </div>
-          <div className="relative">
-            <div
-              className="flex items-center gap-x-3 cursor-pointer"
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-            >
-              <img
-                src="https://via.placeholder.com/40"
-                alt="Profile"
-                className="h-10 w-10 rounded-full"
-              />
-              <div className="hidden md:block">
-                <p className="text-sm font-medium">John Doe</p>
-                <p className="text-xs text-gray-500">Administrator</p>
-              </div>
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            </div>
+  const topProducts = [
+    {
+      id: 1,
+      name: 'Wireless Earbuds',
+      sales: 892,
+      revenue: '$23,456',
+      growth: '+12.5%'
+    },
+    {
+      id: 2,
+      name: 'Smart Watch Pro',
+      sales: 645,
+      revenue: '$18,902',
+      growth: '+8.3%'
+    },
+    {
+      id: 3,
+      name: 'Laptop Stand',
+      sales: 421,
+      revenue: '$12,345',
+      growth: '+15.7%'
+    }
+  ];
 
-            {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                <button
-                  onClick={() => navigate("/profile")}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Your Profile
-                </button>
-                <button
-                  onClick={() => navigate("/settings")}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Settings
-                </button>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-      <div className="flex">
-        <aside className="w-64 bg-white h-screen shadow pt-6">
-          
-          <nav className="space-y-2 px-4">
-            <Link to="/dashboard" className="flex items-center px-3 py-2 rounded-md text-blue-600 bg-blue-50">
-              <Home className="mr-3 h-5 w-5" />
-              Dashboard
-            </Link>
-            <Link to="/people" className="flex items-center px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100">
-              <Users className="mr-3 h-5 w-5" />
-              People
-            </Link>
-            <Link to="/vendors" className="flex items-center px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100">
-              <Users className="mr-3 h-5 w-5" />
-              Vendors
-            </Link>
-            <Link to="/products" className="flex items-center px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100">
-              <BoxesIcon className="mr-3 h-5 w-5" />
-              Products
-            </Link>
-            <Link to="/contracts" className="flex items-center px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100">
-              <FileText className="mr-3 h-5 w-5" />
-              Contracts
-            </Link>
-            <Link to="/settings" className="flex items-center px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100">
-              <Settings className="mr-3 h-5 w-5" />
-              Settings
-            </Link>
-          </nav>
-        </aside>
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar 
+          isMobileOpen={isMobileMenuOpen} 
+          setIsMobileOpen={setIsMobileMenuOpen}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+        />
+        <Header 
+          toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          isCollapsed={isCollapsed}
+        />
 
-
-        <main className="flex-1 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500">{stat.title}</h3>
-                <div className="mt-2 flex items-baseline">
-                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
-                  <span className={`ml-2 text-sm ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
-                    {stat.change}
-                  </span>
+      {/* Main Content */}
+      <main className={`pt-24 p-6 transition-all duration-300
+                     ${isCollapsed ? 'lg:pl-16' : 'lg:pl-72'}`}>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {stats.map((stat, index) => (
+            <div key={index} className="bg-white rounded-xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl ${stat.bgColor}`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
                 </div>
+                <span className={`flex items-center text-sm ${
+                  stat.trend === 'up' ? 'text-green-500' : 'text-red-500'
+                }`}>
+                  {stat.change}
+                  {stat.trend === 'up' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                </span>
               </div>
-            ))}
-          </div>
+              <h3 className="text-2xl font-semibold text-gray-800">{stat.value}</h3>
+              <p className="text-sm text-gray-500 mt-1">{stat.title}</p>
+            </div>
+          ))}
+        </div>
 
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-medium text-gray-900">Recent Notifications</h2>
-            <ul className="mt-4 space-y-4">
-              {notifications.map((notification) => (
-                <li key={notification.id} className="flex justify-between items-center">
-                  <p className="text-sm text-gray-800">{notification.text}</p>
-                  {notification.isNew && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">New</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow mb-6">
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900">
-                Recent Notifications
-              </h2>
-              <div className="mt-6 flow-root">
-                <ul className="divide-y divide-gray-200">
-                  {notifications.map((notification) => (
-                    <li key={notification.id} className="py-4">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {notification.text}
-                          </p>
-                        </div>
-                        {notification.isNew && (
-                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            New
-                          </div>
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Recent Transactions */}
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">Recent Transactions</h2>
+                <button className="text-sm text-[#059B9A] hover:text-[#048887]">View All</button>
+              </div>
+              <div className="space-y-4">
+                {recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                        {transaction.status === 'completed' ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : transaction.status === 'pending' ? (
+                          <Clock className="h-5 w-5 text-yellow-500" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-red-500" />
                         )}
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{transaction.name}</p>
+                        <p className="text-xs text-gray-500">{transaction.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-800">{transaction.amount}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(transaction.status)}`}>
+                        {transaction.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            {" "}
-            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>{" "}
-            <div className="space-y-4">
-              {" "}
-              {recentActivity.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between border-b pb-4 last:border-b-0"
-                >
-                  {" "}
-                  <div className="flex items-center space-x-4">
-                    {" "}
-                    {activity.icon}{" "}
-                    <div>
-                      {" "}
-                      <div className="font-medium text-sm">
-                        {activity.title}
-                      </div>{" "}
-                      <div className="text-xs text-gray-500">
-                        {activity.description}
-                      </div>{" "}
-                    </div>{" "}
-                  </div>{" "}
-                  <div className="text-xs text-gray-500">{activity.time}</div>{" "}
-                </div>
-              ))}{" "}
-            </div>{" "}
+          {/* Top Products */}
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">Top Products</h2>
+                <button className="text-sm text-[#059B9A] hover:text-[#048887]">View Report</button>
+              </div>
+              <div className="space-y-4">
+                {topProducts.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-[#059B9A]/10 flex items-center justify-center">
+                        <ShoppingCart className="h-5 w-5 text-[#059B9A]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{product.name}</p>
+                        <p className="text-xs text-gray-500">{product.sales} sales</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-800">{product.revenue}</p>
+                      <p className="text-xs text-green-500">{product.growth}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </main>
-      </div>
+        </div>
+
+        {/* Activity Timeline */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-800">Activity Timeline</h2>
+            <button className="text-sm text-[#059B9A] hover:text-[#048887]">View All Activity</button>
+          </div>
+          <div className="relative">
+            <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200"></div>
+            <div className="space-y-6">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="relative pl-10">
+                  <div className="absolute left-0 top-2 h-8 w-8 rounded-full bg-[#059B9A]/10 flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4 text-[#059B9A]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-800">New milestone reached</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      The project "Mobile App Redesign" has reached its first milestone.
+                    </p>
+                    <span className="text-xs text-gray-400 mt-2 block">2 hours ago</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

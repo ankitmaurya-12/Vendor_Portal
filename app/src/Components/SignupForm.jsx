@@ -2,17 +2,37 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import emailjs from '@emailjs/browser';
-import { UserIcon, MailIcon, LockIcon, BuildingIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { 
+  UserIcon, 
+  MailIcon, 
+  LockIcon, 
+  BuildingIcon, 
+  EyeIcon, 
+  EyeOffIcon,
+  BriefcaseIcon,
+  ShieldIcon 
+} from "lucide-react";
+import { theme } from '../assets/theme';
+
 
 const SignUpForm = () => {
   const [formData, setFormData] = useState({
-    fname: "",
-    lname: "",
-    company: "",
+    firstName: "",
+    lastName: "",
+    companyName: "",
     email: "",
     password: "",
     conPassword: "",
+    phoneNumber: "",
+    role: "vendor", // Default role
+    status: "active",
+    department: "", // For admin and approver
+    permissions: [], // For admin
+    approvalLimit: "", // For approver
+    businessType: "", // For vendor
+    taxIdentificationNumber: "" // For vendor
   });
+
 
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
@@ -45,6 +65,18 @@ const SignUpForm = () => {
     }
     if (formData.conPassword !== formData.password) {
       newErrors.conPassword = "Passwords do not match.";
+    }
+
+    // Role-specific validation
+    if (formData.role === 'vendor') {
+      if (!formData.company) newErrors.company = "Company name is required.";
+      if (!formData.businessType) newErrors.businessType = "Business type is required.";
+    }
+    if (['admin', 'approver'].includes(formData.role)) {
+      if (!formData.department) newErrors.department = "Department is required.";
+    }
+    if (formData.role === 'approver' && !formData.approvalLimit) {
+      newErrors.approvalLimit = "Approval limit is required.";
     }
 
     return newErrors;
@@ -84,7 +116,8 @@ const SignUpForm = () => {
       setErrorMessage("");
 
       try {
-        const response = await axios.post("http://localhost:5000/signup", formData);
+        // const response = await axios.post("http://localhost:5000/signup", formData);
+        const response = await axios.post("http://localhost:5004/api/users/signup", formData);
         setSuccessMessage("Sign up successful!");
         sendEmail(formData.email);
         setIsPopupVisible(true); // Show popup after successful signup
@@ -107,18 +140,107 @@ const SignUpForm = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+  // Role-specific form fields
+  const renderRoleSpecificFields = () => {
+    switch(formData.role) {
+      case 'vendor':
+        return (
+          <>
+            <div className="relative">
+              <BuildingIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="company"
+                placeholder="Company Name"
+                value={formData.companyName}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                style={{ 
+                  borderColor: theme.colors.border,
+                  '--tw-ring-color': theme.colors.primary 
+                }}
+              />
+              {errors.company && (
+                <p className="text-red-500 text-sm mt-1">{errors.company}</p>
+              )}
+            </div>
+            <div className="relative">
+              <BriefcaseIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="businessType"
+                placeholder="Business Type"
+                value={formData.businessType}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                style={{ 
+                  borderColor: theme.colors.border,
+                  '--tw-ring-color': theme.colors.primary 
+                }}
+              />
+            </div>
+          </>
+        );
+      case 'admin':
+      case 'approver':
+        return (
+          <div className="relative">
+            <ShieldIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              name="department"
+              placeholder="Department"
+              value={formData.department}
+              onChange={handleChange}
+              className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+              style={{ 
+                borderColor: theme.colors.border,
+                '--tw-ring-color': theme.colors.primary 
+              }}
+            />
+            {errors.department && (
+              <p className="text-red-500 text-sm mt-1">{errors.department}</p>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
-      {/* Sign Up Form */}
-      <div className="max-w-md w-full space-y-8 bg-white rounded-xl shadow-lg p-8">
+  return (
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center"
+         style={{ background: theme.colors.background }}>
+      <div className="max-w-md w-full space-y-8 rounded-xl shadow-lg p-8"
+           style={{ background: theme.colors.cardBg }}>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-blue-600 mb-4">Create Your Account</h2>
-          <p className="text-gray-600">Join VendorHub and transform your vendor management</p>
+          <h2 className="text-3xl font-bold mb-4" style={{ color: theme.colors.primary }}>
+            Create Your Account
+          </h2>
+          <p style={{ color: theme.colors.textLight }}>
+            Join us to streamline your business operations
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* Input Fields */}
+          <div className="mb-4">
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full pl-4 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+              style={{ 
+                borderColor: theme.colors.border,
+                '--tw-ring-color': theme.colors.primary 
+              }}
+            >
+              <option value="vendor">Vendor</option>
+              <option value="admin">Admin</option>
+              <option value="approver">Approver</option>
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -150,7 +272,7 @@ const SignUpForm = () => {
             </div>
           </div>
 
-          <div className="relative">
+          {/* <div className="relative">
             <BuildingIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -163,7 +285,7 @@ const SignUpForm = () => {
             {errors.company && (
               <p className="text-red-500 text-sm mt-1">{errors.company}</p>
             )}
-          </div>
+          </div> */}
 
           <div className="relative">
             <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -224,6 +346,9 @@ const SignUpForm = () => {
             )}
           </div>
 
+          {/* Role-specific fields */}
+          {renderRoleSpecificFields()}
+
           {successMessage && (
             <p className="text-green-500 text-sm text-center">{successMessage}</p>
           )}
@@ -233,7 +358,12 @@ const SignUpForm = () => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
+            className="w-full py-3 rounded-lg transition transform hover:scale-105"
+            style={{ 
+              background: theme.colors.primary,
+              color: theme.colors.cardBg,
+              transition: theme.transition.default
+            }}
           >
             Sign Up
           </button>
